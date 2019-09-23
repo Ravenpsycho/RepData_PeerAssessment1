@@ -4,14 +4,65 @@ output:
   html_document:
     keep_md: true
 ---
-
+The file "activity.zip" was originally from [this url](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip).
 
 ## Loading and preprocessing the data
-
-
+We start by unzipping the file and loading the csv file within.
+```{r}
+unzip("activity.zip")
+act_raw <- read.csv("activity.csv")
+```
+We then take a look on what's inside:
+```{r}
+str(act_raw)
+```
+From this we realize that the dates are factors. Not that bad, but the best  
+thing to do is to convert them to actual dates. We also transform the  
+intervals into factors.
+```{r}
+act_pro <- transform(act_raw, interval = factor(interval),
+                     date = as.Date(date, "%Y-%m-%d"))
+```
+Let's check this out:
+```{r}
+str(act_pro)
+```
 
 ## What is mean total number of steps taken per day?
-
+For this, we will need additionnal packages:
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+We start by grouping the data by date, we will do this by creating a new  
+dataframe:
+```{r}
+df_by_day <- act_pro %>% group_by(date) %>% 
+    summarise(steps_by_day = sum(steps, na.rm = F),
+              nb_NA = sum(is.na(steps)))
+table(df_by_day$nb_NA)
+```
+The variable "nb_NA" clearly shows the repartition of the NA's : Either a  
+day has 288 values (one by interval) or none (288 NA's). This will help us  
+in the future.  
+  
+For now, we want a histogram of the steps taken each day. This will show the repartition of the sums.
+```{r}
+hist1 <- qplot(steps_by_day, data = df_by_day, binwidth = 1500)+
+    ylab("Count (number of days)")+
+    xlab("Number of steps (unit)")+
+    labs(title = "Histogram of the total steps taken by day.",
+         subtitle = "Median in red.")+
+    geom_vline(xintercept = median(df_by_day$steps_by_day, na.rm = T),
+               color = 2)
+print(hist1)
+```
+  
+We can clearly see that the totals gravitate around the median (see below)  
+with a rather central pattern.
+```{r}
+summary(df_by_day$steps_by_day)
+```
 
 
 ## What is the average daily activity pattern?
