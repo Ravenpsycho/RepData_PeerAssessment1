@@ -17,11 +17,9 @@ We then take a look on what's inside:
 str(act_raw)
 ```
 From this we realize that the dates are factors. Not that bad, but the best  
-thing to do is to convert them to actual dates. We also transform the  
-intervals into factors.
+thing to do is to convert them to actual dates.
 ```{r}
-act_pro <- transform(act_raw, interval = factor(interval),
-                     date = as.Date(date, "%Y-%m-%d"))
+act_pro <- transform(act_raw, date = as.Date(date, "%Y-%m-%d"))
 ```
 Let's check this out:
 ```{r}
@@ -57,19 +55,77 @@ hist1 <- qplot(steps_by_day, data = df_by_day, binwidth = 1500)+
                color = 2)
 print(hist1)
 ```
-  
-We can clearly see that the totals gravitate around the median (see below)  
-with a rather central pattern.
-```{r}
+```{r echo=FALSE}
 summary(df_by_day$steps_by_day)
-```
-
+```  
+We can clearly see that the totals gravitate around the median (see above)  
+with a rather central pattern.
 
 ## What is the average daily activity pattern?
+There we need a new data frame grouped by intervals. Let's do this and take a look.
+```{r Creating the df_inter dataframe}
+df_inter <- act_pro %>%
+        group_by(interval) %>%
+        summarise(mean_by_interval = round(mean(steps, na.rm = T), 4))
+head(df_inter, 20)
+```
+We can easily extract the highest value with the **which.max** function to know  
+which of the intervals has the highest mean and store this into variables.
+```{r}
+max_index <- which.max(df_inter$mean_by_interval)
+max_interval <- as.numeric(paste(df_inter$interval[max_index]))
+max_mean <- df_inter$mean_by_interval[max_index]
+print(df_inter[max_index,])
+```
+We then construct the plot with the help of the variable **max_inter** to help  
+make the max value clear:
+```{r}
+g1 <- ggplot(df_inter, aes(as.numeric(paste(interval)), mean_by_interval))+ 
+        geom_line() +
+        theme_bw() +
+        ylab("Mean steps taken during interval (all days merged)") +
+        xlab("Interval ID (5 minutes intervals)") +
+        geom_vline(xintercept = max_interval, color = "steelblue", lty = 2) +
+        scale_x_continuous(breaks = c(seq(from= 0, to = 2000, by=500),
+                                      max_interval,
+                                      seq(from= 1000, to = 2000, by=500))) +
+        annotate(geom = "text",
+                 x = max_interval+300,
+                 y = max_mean,
+                 label = paste0("Max value:", max_mean),
+                 color = "steelblue")
+g1
+```
 
 
 
 ## Imputing missing values
+```{r}
+act_compl <- act_pro
+act_compl <- merge(act_compl, df_inter, sort = F)
+act_compl <- transform(act_compl, steps = ifelse(is.na(steps), mean_by_interval, steps))
+act_compl <- act_compl[order(act_compl$date, act_compl$interval), -4]
+df_by_day_compl<- act_compl %>% group_by(date) %>% 
+    summarise(steps_by_day = sum(steps, na.rm = F),
+              nb_NA = sum(is.na(steps)))
+hist2 <- ggplot(df_by_day_compl, aes(steps_by_day), binwidth = 1500)+
+    geom_histogram() +
+    geom_histogram(data = df_by_day, aes(steps_by_day), 
+                   alpha = 0.5, color = 3)+
+    ylab("Count (number of days)")+
+    xlab("Number of steps (unit)")+
+    labs(title = "Histogram of the total steps taken by day.",
+         subtitle = "Median in red.")+
+    geom_vline(xintercept = median(df_by_day_compl$steps_by_day, na.rm = T),
+               color = 2)
+hist2
+```
+```{r echo=FALSE}
+print("Steps by day with NA's:")
+summary(df_by_day_compl$steps_by_day)
+print("Steps by day Na's replaced by mean of the interval:")
+summary(df_by_day$steps_by_day)
+```
 
 
 
