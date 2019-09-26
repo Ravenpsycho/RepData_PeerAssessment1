@@ -14,9 +14,11 @@ act_raw <- read.csv("activity.csv")
 ```
 We then take a look on what's inside:
 ```{r}
-str(act_raw)
+str(act_raw); summary(act_raw)
 ```
-From this we realize that the dates are factors. Not that bad, but the best  
+From this we realize:  
+A) There are missing values in the "steps" variable.
+B) The dates are factors. Not that bad, but the best  
 thing to do is to convert them to actual dates.
 ```{r}
 act_pro <- transform(act_raw, date = as.Date(date, "%Y-%m-%d"))
@@ -100,33 +102,40 @@ g1
 
 
 ## Imputing missing values
+From the previous exploration, we can see many variations in term of values during one day, it makes more sense to me to replace the NA's with the mean of their interval across all days.
 ```{r}
 act_compl <- act_pro
 act_compl <- merge(act_compl, df_inter, sort = F)
 act_compl <- transform(act_compl, steps = ifelse(is.na(steps), mean_by_interval, steps))
 act_compl <- act_compl[order(act_compl$date, act_compl$interval), -4]
+```
+
+```{r}
 df_by_day_compl<- act_compl %>% group_by(date) %>% 
     summarise(steps_by_day = sum(steps, na.rm = F),
               nb_NA = sum(is.na(steps)))
-hist2 <- ggplot(df_by_day_compl, aes(steps_by_day), binwidth = 1500)+
-    geom_histogram() +
-    geom_histogram(data = df_by_day, aes(steps_by_day), 
-                   alpha = 0.5, color = 3)+
+hist2 <- ggplot(df_by_day_compl, aes(steps_by_day))+
+    geom_histogram(binwidth = 1500) +
     ylab("Count (number of days)")+
     xlab("Number of steps (unit)")+
     labs(title = "Histogram of the total steps taken by day.",
-         subtitle = "Median in red.")+
+         subtitle = "Median in red. NA values replaced by mean of interval.")+
     geom_vline(xintercept = median(df_by_day_compl$steps_by_day, na.rm = T),
                color = 2)
-hist2
+hist2;hist1
 ```
-```{r echo=FALSE}
-print("Steps by day with NA's:")
+If we take a look at the values, we can see they are pretty similar.  
+  
+Here's the summary with NA replaced:
+```{r}
 summary(df_by_day_compl$steps_by_day)
-print("Steps by day Na's replaced by mean of the interval:")
+```
+And the original values (see above) with NA's:
+```{r}
 summary(df_by_day$steps_by_day)
 ```
 
+So unless needed for some kind of model, we can leave the NA's in
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
