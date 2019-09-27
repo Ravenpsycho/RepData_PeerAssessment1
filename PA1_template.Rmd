@@ -131,9 +131,9 @@ hist2 <- ggplot(df_by_day_compl, aes(steps_by_day))+
         geom_vline(xintercept = median(df_by_day_compl$steps_by_day, na.rm = T),
                    color = 2)+
         theme_bw()
-hist2;hist1
+hist2;hist1 + ylim(c(0,15))
 ```
-If we take a look at the histograms, we can see that filling the NA's with "basic" approaches such as means or medians tend to centralize data, hence skewing groups.
+If we take a look at the histograms, we can see that filling the NA's with "basic" approaches such as means or medians tend to centralize data, hence eventually skewing group tendencies.
 
 Here's the summary with NA replaced:
 ```{r}
