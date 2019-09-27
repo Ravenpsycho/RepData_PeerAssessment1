@@ -1,5 +1,6 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
+author: "Mathieu C."
 output: 
   html_document:
     keep_md: true
@@ -38,26 +39,29 @@ We start by grouping the data by date, we will do this by creating a new
 dataframe:
 ```{r}
 df_by_day <- act_pro %>% group_by(date) %>% 
-    summarise(steps_by_day = sum(steps, na.rm = F),
-              nb_NA = sum(is.na(steps)))
+        summarise(steps_by_day = sum(steps, na.rm = F),
+                  nb_NA = sum(is.na(steps)))
 table(df_by_day$nb_NA)
 ```
 The variable "nb_NA" clearly shows the repartition of the NA's : Either a  
 day has 288 values (one by interval) or none (288 NA's). This will help us  
 in the future.  
-  
+
 For now, we want a histogram of the steps taken each day. This will show the repartition of the sums.
 ```{r}
-hist1 <- qplot(steps_by_day, data = df_by_day, binwidth = 1500)+
-    ylab("Count (number of days)")+
-    xlab("Number of steps (unit)")+
-    labs(title = "Histogram of the total steps taken by day.",
-         subtitle = "Median in red.")+
-    geom_vline(xintercept = median(df_by_day$steps_by_day, na.rm = T),
-               color = 2)
-print(hist1)
+hist1 <- qplot(steps_by_day, data = df_by_day, binwidth = 1000)+
+        ylab("Count (number of days)")+
+        xlab("Number of steps (unit)")+
+        labs(title = "Histogram of the total steps taken by day.",
+             subtitle = "Median in red.")+
+        geom_vline(xintercept = median(df_by_day$steps_by_day, na.rm = T),
+                   color = 2) +
+        theme_bw()
+        print(hist1)
 ```
-```{r echo=FALSE}
+
+A quick call to summary will tell us more about the mean and median.
+```{r}
 summary(df_by_day$steps_by_day)
 ```  
 We can clearly see that the totals gravitate around the median (see above)  
@@ -69,7 +73,7 @@ There we need a new data frame grouped by intervals. Let's do this and take a lo
 df_inter <- act_pro %>%
         group_by(interval) %>%
         summarise(mean_by_interval = round(mean(steps, na.rm = T), 4))
-head(df_inter, 20)
+head(df_inter, 10)
 ```
 We can easily extract the highest value with the **which.max** function to know  
 which of the intervals has the highest mean and store this into variables.
@@ -79,7 +83,7 @@ max_interval <- as.numeric(paste(df_inter$interval[max_index]))
 max_mean <- df_inter$mean_by_interval[max_index]
 print(df_inter[max_index,])
 ```
-We then construct the plot with the help of the variable **max_inter** to help  
+We then construct the plot with the help of the variables **max_interval & max_mean** to help  
 make the max value clear:
 ```{r}
 g1 <- ggplot(df_inter, aes(as.numeric(paste(interval)), mean_by_interval))+ 
@@ -102,7 +106,11 @@ g1
 
 
 ## Imputing missing values
-From the previous exploration, we can see many variations in term of values during one day, it makes more sense to me to replace the NA's with the mean of their interval across all days.
+From the previous exploration, we can see many variations in term of values during one day, it makes more sense to me to replace the NA's with the mean of their interval across all days.  
+
+For this we will use the previously created **df_inter** data frame.  
+df_inter contains exactly 288 lines, one per interval, along with the matching mean.  
+
 ```{r}
 act_compl <- act_pro
 act_compl <- merge(act_compl, df_inter, sort = F)
@@ -112,20 +120,21 @@ act_compl <- act_compl[order(act_compl$date, act_compl$interval), -4]
 
 ```{r}
 df_by_day_compl<- act_compl %>% group_by(date) %>% 
-    summarise(steps_by_day = sum(steps, na.rm = F),
-              nb_NA = sum(is.na(steps)))
+        summarise(steps_by_day = sum(steps, na.rm = F),
+                  nb_NA = sum(is.na(steps)))
 hist2 <- ggplot(df_by_day_compl, aes(steps_by_day))+
-    geom_histogram(binwidth = 1500) +
-    ylab("Count (number of days)")+
-    xlab("Number of steps (unit)")+
-    labs(title = "Histogram of the total steps taken by day.",
-         subtitle = "Median in red. NA values replaced by mean of interval.")+
-    geom_vline(xintercept = median(df_by_day_compl$steps_by_day, na.rm = T),
-               color = 2)
+        geom_histogram(binwidth = 1000) +
+        ylab("Count (number of days)")+
+        xlab("Number of steps (unit)")+
+        labs(title = "Histogram of the total steps taken by day.",
+             subtitle = "Median in red. NA values replaced by mean of interval.")+
+        geom_vline(xintercept = median(df_by_day_compl$steps_by_day, na.rm = T),
+                   color = 2)+
+        theme_bw()
 hist2;hist1
 ```
-If we take a look at the values, we can see they are pretty similar.  
-  
+If we take a look at the histograms, we can see that filling the NA's with "basic" approaches such as means or medians tend to centralize data, hence skewing groups.
+
 Here's the summary with NA replaced:
 ```{r}
 summary(df_by_day_compl$steps_by_day)
