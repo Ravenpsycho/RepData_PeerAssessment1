@@ -144,7 +144,47 @@ And the original values (see above) with NA's:
 summary(df_by_day$steps_by_day)
 ```
 
-So unless needed for some kind of model, we can leave the NA's in
+So unless needed for some kind of model, I would leave the NA's as is.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+First thing, we will add the variable **weekday** to the act_pro dataframe and add another variable, **day_group**   which will be used as the main group_by variable.
+
+```{r}
+act_pro <- transform(act_pro, weekday = weekdays(date, abbreviate = F))
+
+## This line is a cheap way to be sure to catch the weekend days names even if the system is in a different
+## language
+weekend_days <- c(weekdays(as.Date("2019-09-28")), weekdays(as.Date("2019-09-29")))
+####
+
+act_pro <- transform(act_pro, day_group = ifelse(act_pro$weekday %in% weekend_days, "Weekend", "Weekday"))
+table(act_pro$day_group)
+
+```
+We can see that (as expected) there are more weekdays than weekend days.
+Let's create the graph:
+```{r}
+g2 <- act_pro %>%
+    group_by(interval, day_group) %>%
+    summarize(mean_steps = mean(steps, na.rm = T)) %>%
+    ggplot(., aes(interval, mean_steps))
+g2 <- g2 + geom_smooth(col = 2, alpha = 0.5)
+g2 <- g2 + geom_line() + facet_grid(day_group~.) + theme_bw()
+g2 <- g2 + ylab("Mean of steps during interval") + xlab("Interval ID")
+g2
+```
+We have a clear answer here: There **IS** a rather evident shift in activity pattern  
+between weekdays and weekend. The activity is shifted towards higher Interval  
+ID's (aka: later in the day) and is higher in these later timepoints.  
+The overall mean of activity is also higher during the weekends as seen below:
+
+```{r}
+mean_wd <- mean(act_pro$steps[act_pro$day_group == "Weekday"], na.rm = T)
+mean_we <- mean(act_pro$steps[act_pro$day_group == "Weekend"], na.rm = T)
+names(mean_wd) <- "Mean during Weekdays"
+names(mean_we) <- "Mean during Weekends"
+mean_wd;mean_we
+```
+
