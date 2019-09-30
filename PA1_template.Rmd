@@ -47,7 +47,8 @@ The variable "nb_NA" clearly shows the repartition of the NA's : Either a
 day has 288 values (one by interval) or none (288 NA's). This will help us  
 in the future.  
 
-For now, we want a histogram of the steps taken each day. This will show the repartition of the sums.
+For now, we want a histogram of the steps taken each day. This will show the  
+repartition of the sums.
 ```{r}
 hist1 <- qplot(steps_by_day, data = df_by_day, binwidth = 1000)+
         ylab("Count (number of days)")+
@@ -69,7 +70,7 @@ with a rather central pattern.
 
 ## What is the average daily activity pattern?
 There we need a new data frame grouped by intervals. Let's do this and take a look.
-```{r Creating the df_inter dataframe}
+```{r}
 df_inter <- act_pro %>%
         group_by(interval) %>%
         summarise(mean_by_interval = round(mean(steps, na.rm = T), 4))
@@ -83,8 +84,8 @@ max_interval <- as.numeric(paste(df_inter$interval[max_index]))
 max_mean <- df_inter$mean_by_interval[max_index]
 print(df_inter[max_index,])
 ```
-We then construct the plot with the help of the variables **max_interval & max_mean** to help  
-make the max value clear:
+We then construct the plot with the help of the variables  
+**max_interval & max_mean** to help make the max value clear:
 ```{r}
 g1 <- ggplot(df_inter, aes(as.numeric(paste(interval)), mean_by_interval))+ 
         geom_line() +
@@ -104,7 +105,8 @@ g1
 ```
 
 ## Imputing missing values
-From the previous exploration, we can see many variations in term of values during one day, it makes more sense to me to replace the NA's with the mean of their interval across all days.  
+From the previous exploration, we can see many variations in term of values during one day, it  
+makes more sense to me to replace the NA's with the mean of their interval across all days.  
 
 For this we will use the previously created **df_inter** data frame.  
 df_inter contains exactly 288 lines, one per interval, along with the matching mean.  
@@ -132,7 +134,8 @@ hist2 <- ggplot(df_by_day_compl, aes(steps_by_day))+
 hist2;hist1 + ylim(c(0,15))
 ```
   
-If we take a look at the histograms, we can see that filling the NA's with "basic" approaches such as means or medians tend to centralize data, hence eventually skewing group tendencies.
+If we take a look at the histograms, we can see that filling the NA's with "basic" approaches  
+such as means or medians tend to centralize data, hence eventually skewing group tendencies.
 
 Here's the summary with NA replaced:
 ```{r}
@@ -148,7 +151,8 @@ So unless needed for some kind of model, I would leave the NA's as is.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-First thing, we will add the variable **weekday** to the act_pro dataframe and add another variable, **day_group**   which will be used as the main group_by variable.
+First thing, we will add the variable **weekday** to the act_pro dataframe and add another  
+variable, **day_group**   which will be used as the main group_by variable.
 
 ```{r}
 act_pro <- transform(act_pro, weekday = weekdays(date, abbreviate = F))
@@ -169,11 +173,11 @@ Let's create the graph:
 g2 <- act_pro %>%
     group_by(interval, day_group) %>%
     summarize(mean_steps = mean(steps, na.rm = T)) %>%
-    ggplot(., aes(interval, mean_steps))
-g2 <- g2 + geom_smooth(aes(color = day_group))
-g2 <- g2 + geom_line() + facet_grid(day_group~.) + theme_bw() 
-g2 <- g2 + theme(legend.position = "none")
-g2 <- g2 + ylab("Mean of steps during interval") + xlab("Interval ID")
+    ggplot(., aes(interval, mean_steps)) +
+    geom_smooth(aes(color = day_group)) +
+    geom_line() + facet_grid(day_group~.) + theme_bw() +
+    theme(legend.position = "none") +
+    ylab("Mean of steps during interval") + xlab("Interval ID")
 g2
 ```
   
