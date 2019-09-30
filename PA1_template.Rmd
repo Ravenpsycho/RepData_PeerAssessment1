@@ -103,8 +103,6 @@ g1 <- ggplot(df_inter, aes(as.numeric(paste(interval)), mean_by_interval))+
 g1
 ```
 
-
-
 ## Imputing missing values
 From the previous exploration, we can see many variations in term of values during one day, it makes more sense to me to replace the NA's with the mean of their interval across all days.  
 
@@ -133,6 +131,7 @@ hist2 <- ggplot(df_by_day_compl, aes(steps_by_day))+
         theme_bw()
 hist2;hist1 + ylim(c(0,15))
 ```
+  
 If we take a look at the histograms, we can see that filling the NA's with "basic" approaches such as means or medians tend to centralize data, hence eventually skewing group tendencies.
 
 Here's the summary with NA replaced:
@@ -163,6 +162,7 @@ act_pro <- transform(act_pro, day_group = ifelse(act_pro$weekday %in% weekend_da
 table(act_pro$day_group)
 
 ```
+  
 We can see that (as expected) there are more weekdays than weekend days.
 Let's create the graph:
 ```{r}
@@ -170,11 +170,13 @@ g2 <- act_pro %>%
     group_by(interval, day_group) %>%
     summarize(mean_steps = mean(steps, na.rm = T)) %>%
     ggplot(., aes(interval, mean_steps))
-g2 <- g2 + geom_smooth(col = 2, alpha = 0.5)
-g2 <- g2 + geom_line() + facet_grid(day_group~.) + theme_bw()
+g2 <- g2 + geom_smooth(aes(color = day_group))
+g2 <- g2 + geom_line() + facet_grid(day_group~.) + theme_bw() 
+g2 <- g2 + theme(legend.position = "none")
 g2 <- g2 + ylab("Mean of steps during interval") + xlab("Interval ID")
 g2
 ```
+  
 We have a clear answer here: There **IS** a rather evident shift in activity pattern  
 between weekdays and weekend. The activity is shifted towards higher Interval  
 ID's (aka: later in the day) and is higher in these later timepoints.  
