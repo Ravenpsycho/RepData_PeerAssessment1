@@ -69,11 +69,14 @@ We can clearly see that the totals gravitate around the median (see above)
 with a rather central pattern.
 
 ## What is the average daily activity pattern?
-There we need a new data frame grouped by intervals. Let's do this and take a look.
+There we need a new data frame grouped by intervals, getting the mean and  
+median for each of the groups. Let's do this and take a look.
 ```{r}
 df_inter <- act_pro %>%
         group_by(interval) %>%
-        summarise(mean_by_interval = round(mean(steps, na.rm = T), 4))
+        summarise(mean_by_interval = round(mean(steps, na.rm = T), 4),
+                  median_by_interval = round(median(steps, na.rm = T), 4),
+                  sd_by_interval = round(sd(steps, na.rm = T), 4))
 head(df_inter, 10)
 ```
 We can easily extract the highest value with the **which.max** function to know  
@@ -105,37 +108,50 @@ g1
 ```
 
 ## Imputing missing values
-From the previous exploration, we can see many variations in term of values during one day, it  
-makes more sense to me to replace the NA's with the mean of their interval across all days.  
+From the previous exploration, we can see many variations in term of values  
+during one day, it makes more sense to me to replace the NA's with the mean  
+or median of their **interval** across all days.  
+  
+If we take a look at the standard deviations of each interval group, we can  
+also see that they sometimes go pretty high, further encouraging the use of  
+the median to be as representative as possible of an "average day".
 
-For this we will use the previously created **df_inter** data frame.  
-df_inter contains exactly 288 lines, one per interval, along with the matching mean.  
+For this, we will use the previously created **df_by_day** data frame.  
+df_by_day contains exactly 61 lines, one per day, along with the  
+matching sum of steps (or NA) in the variable steps_by_day. We will simply  
+transform the NA's into the median of the steps_by_day variable.
 
 ```{r}
-act_compl <- act_pro
-act_compl <- merge(act_compl, df_inter, sort = F)
-act_compl <- transform(act_compl, steps = ifelse(is.na(steps), mean_by_interval, steps))
-act_compl <- act_compl[order(act_compl$date, act_compl$interval), -4]
+df_by_day_compl <- transform(df_by_day, 
+                       steps_by_day = ifelse(is.na(steps_by_day),
+                                             median(steps_by_day, na.rm = T),
+                                             steps_by_day))
+df_by_day_compl <- df_by_day_compl[,-3]
 ```
-
+  
+Then we can construct the plot:
 ```{r}
-df_by_day_compl<- act_compl %>% group_by(date) %>% 
-        summarise(steps_by_day = sum(steps, na.rm = F),
-                  nb_NA = sum(is.na(steps)))
-hist2 <- ggplot(df_by_day_compl, aes(steps_by_day))+
-        geom_histogram(binwidth = 1000) +
+hist2 <- ggplot()+
+        geom_histogram(data = df_by_day_compl, aes(steps_by_day, fill = "steelblue")) +
+        geom_histogram(data = df_by_day, aes(steps_by_day, fill = "red3"), alpha = 0.5) +
         ylab("Count (number of days)")+
         xlab("Number of steps (unit)")+
         labs(title = "Histogram of the total steps taken by day.",
-             subtitle = "Median in red. NA values replaced by mean of interval.")+
-        geom_vline(xintercept = median(df_by_day_compl$steps_by_day, na.rm = T),
-                   color = 2)+
+             subtitle = "Median in blue / red. NA's filled with median of daily sum of steps.")+
+        geom_vline(xintercept = median(df_by_day_compl$steps_by_day),
+                   color = "steelblue", lwd = 2.2)+ 
+        geom_vline(xintercept = median(df_by_day$steps_by_day, na.rm = T),
+                   color = "red3", lwd = 1.2, alpha = 0.5)+
+        scale_fill_manual(values = c("red3", "steelblue"), labels = c( "NA's", "No NA's"),
+                          name = NULL) +
         theme_bw()
-hist2;hist1 + ylim(c(0,15))
+hist2
 ```
   
-If we take a look at the histograms, we can see that filling the NA's with "basic" approaches  
-such as means or medians tend to centralize data, hence eventually skewing group tendencies.
+If we take a look at the histograms, we can see that filling the NA's with  
+"basic" approaches such as means or medians tend to centralize data, hence  
+eventually skewing group tendencies by pulling the 1st and 3rd quartiles  
+towards the median.
 
 Here's the summary with NA replaced:
 ```{r}
@@ -174,7 +190,7 @@ g2 <- act_pro %>%
     group_by(interval, day_group) %>%
     summarize(mean_steps = mean(steps, na.rm = T)) %>%
     ggplot(., aes(interval, mean_steps)) +
-    geom_smooth(aes(color = day_group)) +
+    geom_smooth(aes(color = day_group), method = "loess") +
     geom_line() + facet_grid(day_group~.) + theme_bw() +
     theme(legend.position = "none") +
     ylab("Mean of steps during interval") + xlab("Interval ID")
@@ -193,4 +209,6 @@ names(mean_wd) <- "Mean during Weekdays"
 names(mean_we) <- "Mean during Weekends"
 mean_wd;mean_we
 ```
-
+  
+The conclusion is that the activities seem to start later during the day on  
+weekend but make for it with intensity.
