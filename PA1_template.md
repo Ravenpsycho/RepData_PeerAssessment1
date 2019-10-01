@@ -8,9 +8,11 @@ output:
 The file "activity.zip" was originally from [this url](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip).
 
 ## Loading and preprocessing the data
-We start by unzipping the file and loading the csv file within.
+We start by downloading & unzipping the file and loading the csv file within.
 
 ```r
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", 
+              destfile = "activity.zip")
 unzip("activity.zip")
 act_raw <- read.csv("activity.csv")
 ```
@@ -103,7 +105,7 @@ hist1 <- qplot(steps_by_day, data = df_by_day, binwidth = 1000)+
 ## Warning: Removed 8 rows containing non-finite values (stat_bin).
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-44-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 A quick call to summary will tell us more about the mean and median.
 
@@ -183,29 +185,37 @@ g1 <- ggplot(df_inter, aes(as.numeric(paste(interval)), mean_by_interval))+
 g1
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-48-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 ## Imputing missing values
 From the previous exploration, we can see many variations in term of values  
 during one day, it makes more sense to me to replace the NA's with the mean  
-or median of their **interval** across all days.  
+or median of a whole group (day or interval).  
   
-If we take a look at the standard deviations of each interval group, we can  
-also see that they sometimes go pretty high, further encouraging the use of  
-the median to be as representative as possible of an "average day".
+If we take a look at the standard deviations of each **interval** group (cf.  
+df_inter dataframe), we can also see that they sometimes go pretty high, 
+further encouraging the use of the median to be as representative as possible  
+of an "average day".
 
-For this, we will use the previously created **df_by_day** data frame.  
-df_by_day contains exactly 61 lines, one per day, along with the  
-matching sum of steps (or NA) in the variable steps_by_day. We will simply  
-transform the NA's into the median of the steps_by_day variable.
+For these reasons, we will replace the values with the median of the  
+corresponding interval.
+
+For this, we will use the previously created **df_inter** data frame.  
+df_inter contains exactly 288 lines, one per interval, along with the  
+matching mean and median of steps. We will simply transform the NA's  
+into the median of the corresponding interval.
 
 
 ```r
-df_by_day_compl <- transform(df_by_day, 
-                       steps_by_day = ifelse(is.na(steps_by_day),
-                                             median(steps_by_day, na.rm = T),
-                                             steps_by_day))
-df_by_day_compl <- df_by_day_compl[,-3]
+act_compl <- merge(act_pro, df_inter,sort = F) 
+act_compl <- transform(act_compl, 
+                       steps= ifelse(is.na(steps), 
+                                           median_by_interval,
+                                           steps))
+act_compl <- act_compl[order(act_compl$date, act_compl$interval),]
+df_by_day_compl <- act_compl %>% group_by(date) %>% 
+        summarise(steps_by_day = sum(steps, na.rm = F),
+                  nb_NA = sum(is.na(steps)))
 ```
   
 Then we can construct the plot:
@@ -219,9 +229,9 @@ hist2 <- ggplot()+
         labs(title = "Histogram of the total steps taken by day.",
              subtitle = "Median in blue / red. NA's filled with median of daily sum of steps.")+
         geom_vline(xintercept = median(df_by_day_compl$steps_by_day),
-                   color = "steelblue", lwd = 2.2)+ 
+                   color = "steelblue", lwd = 1.2)+ 
         geom_vline(xintercept = median(df_by_day$steps_by_day, na.rm = T),
-                   color = "brown3", lwd = 1.2, alpha = 0.5)+
+                   color = "brown3", lwd = 1.2)+
         scale_fill_manual(values = c("brown3", "steelblue"), labels = c( "NA's present", "NA's filled"),
                           name = NULL) +
         theme_bw()
@@ -237,15 +247,16 @@ hist2
 ## Warning: Removed 8 rows containing non-finite values (stat_bin).
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-50-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
   
 If we take a look at the histograms, we can see that filling the NA's with  
-"basic" approaches such as means or medians tend to centralize data, hence  
-eventually skewing group tendencies by pulling the 1st and 3rd quartiles  
-towards the median.  
+"basic" approaches such as means or medians tend to modify the repartition of  
+the data. Here we can see that since the median is often 0, the sum of those  
+data create a new and fairly low group (all 8 days are of course in the same  
+group). 
   
 The histogram shows that the corrected and uncorrected datasets overlap on all  
-but one column which is the one where the median(s) are.
+but one column, the one with the NA values.
 
 It becomes more obvious when we look at the summary with NA replaced:
 
@@ -255,7 +266,7 @@ summary(df_by_day_compl$steps_by_day)
 
 ```
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##      41    9819   10765   10766   12811   21194
+##      41    6778   10395    9504   12811   21194
 ```
 ... in comparaison with the original values (see above) with NA's:
 
@@ -310,7 +321,7 @@ g2 <- act_pro %>%
 g2
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-54-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
   
 We have a clear answer here: There **IS** a rather evident shift in activity pattern  
 between weekdays and weekend. The activity is shifted towards higher Interval  
