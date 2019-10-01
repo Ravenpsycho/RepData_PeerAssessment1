@@ -66,7 +66,7 @@ A quick call to summary will tell us more about the mean and median.
 summary(df_by_day$steps_by_day)
 ```  
 We can clearly see that the totals gravitate around the median (see above)  
-with a rather central pattern.
+with a rather central distribution pattern.
 
 ## What is the average daily activity pattern?
 There we need a new data frame grouped by intervals, getting the mean and  
@@ -133,7 +133,7 @@ Then we can construct the plot:
 ```{r}
 hist2 <- ggplot()+
         geom_histogram(data = df_by_day_compl, aes(steps_by_day, fill = "steelblue")) +
-        geom_histogram(data = df_by_day, aes(steps_by_day, fill = "red3"), alpha = 0.5) +
+        geom_histogram(data = df_by_day, aes(steps_by_day, fill = "brown3"), alpha = 0.5) +
         ylab("Count (number of days)")+
         xlab("Number of steps (unit)")+
         labs(title = "Histogram of the total steps taken by day.",
@@ -141,8 +141,8 @@ hist2 <- ggplot()+
         geom_vline(xintercept = median(df_by_day_compl$steps_by_day),
                    color = "steelblue", lwd = 2.2)+ 
         geom_vline(xintercept = median(df_by_day$steps_by_day, na.rm = T),
-                   color = "red3", lwd = 1.2, alpha = 0.5)+
-        scale_fill_manual(values = c("red3", "steelblue"), labels = c( "NA's", "No NA's"),
+                   color = "brown3", lwd = 1.2, alpha = 0.5)+
+        scale_fill_manual(values = c("brown3", "steelblue"), labels = c( "NA's present", "NA's filled"),
                           name = NULL) +
         theme_bw()
 hist2
@@ -151,13 +151,16 @@ hist2
 If we take a look at the histograms, we can see that filling the NA's with  
 "basic" approaches such as means or medians tend to centralize data, hence  
 eventually skewing group tendencies by pulling the 1st and 3rd quartiles  
-towards the median.
+towards the median.  
+  
+The histogram shows that the corrected and uncorrected datasets overlap on all  
+but one column which is the one where the median(s) are.
 
-Here's the summary with NA replaced:
+It becomes more obvious when we look at the summary with NA replaced:
 ```{r}
 summary(df_by_day_compl$steps_by_day)
 ```
-And the original values (see above) with NA's:
+... in comparaison with the original values (see above) with NA's:
 ```{r}
 summary(df_by_day$steps_by_day)
 ```
